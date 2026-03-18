@@ -1,103 +1,113 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
-<title>Track Your Order</title>
-
-<style>
-
-body{
-font-family:Arial;
-background:#f4f6f9;
-text-align:center;
-padding:40px;
-}
-
-input{
-padding:10px;
-margin:10px;
-width:250px;
-}
-
-button{
-padding:10px 20px;
-cursor:pointer;
-}
-
-table{
-margin:auto;
-margin-top:30px;
-border-collapse:collapse;
-}
-
-th,td{
-padding:10px 20px;
-border:1px solid #ccc;
-}
-
-</style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Halleyx · Track Order</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f3f6fc;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .track-card {
+      background: white;
+      max-width: 800px;
+      width: 100%;
+      border-radius: 40px;
+      padding: 40px;
+      box-shadow: 0 20px 30px -10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      font-size: 32px;
+      font-weight: 600;
+      background: linear-gradient(145deg, #1e293b, #2563eb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 30px;
+    }
+    .search-box {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+    .search-box input {
+      flex: 1;
+      border: 1px solid #e2e8f0;
+      border-radius: 60px;
+      padding: 16px 24px;
+      font-size: 16px;
+      outline: none;
+    }
+    .search-box button {
+      background: #2563eb;
+      border: none;
+      border-radius: 60px;
+      padding: 0 32px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .search-box button:hover { background: #1d4ed8; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th { text-align: left; padding: 16px 8px 8px 8px; color: #475569; font-weight: 600; font-size: 14px; border-bottom: 2px solid #e2e8f0; }
+    td { padding: 14px 8px; border-bottom: 1px solid #e2e8f0; }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 40px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .pending { background: #fef9c3; color: #854d0e; }
+    .delivered { background: #dcfce7; color: #166534; }
+    .in_progress { background: #dbeafe; color: #1e40af; }
+  </style>
 </head>
-
 <body>
+  <div class="track-card">
+    <h2>Track your order</h2>
+    <div class="search-box">
+      <input id="email" placeholder="Enter your email address" value="john@example.com">
+      <button onclick="trackOrder()">Track</button>
+    </div>
+    <table>
+      <thead><tr><th>Order ID</th><th>Product</th><th>Total</th><th>Status</th></tr></thead>
+      <tbody id="result"></tbody>
+    </table>
+  </div>
 
-<h2>Track Your Order</h2>
-
-<input id="email" placeholder="Enter your email">
-
-<br>
-
-<button onclick="trackOrder()">Track Order</button>
-
-<table>
-
-<thead>
-<tr>
-<th>Order ID</th>
-<th>Product</th>
-<th>Total</th>
-<th>Status</th>
-</tr>
-</thead>
-
-<tbody id="result"></tbody>
-
-</table>
-
-<script>
-
-async function trackOrder(){
-
-let email=document.getElementById("email").value;
-
-let res=await fetch(
-"http://localhost:8080/orders/track?email="+email
-);
-
-let orders=await res.json();
-
-let table="";
-
-orders.forEach(o=>{
-
-table+=`
-<tr>
-<td>${o.id}</td>
-<td>${o.product}</td>
-<td>${o.totalAmount}</td>
-<td>${o.status}</td>
-</tr>
-`;
-
-});
-
-document.getElementById("result").innerHTML=table;
-
-}
-
-</script>
-
+  <script>
+    async function trackOrder() {
+      const email = document.getElementById('email').value;
+      try {
+        const res = await fetch(`http://localhost:8080/orders/track?email=${encodeURIComponent(email)}`);
+        const orders = await res.json();
+        let html = '';
+        orders.forEach(o => {
+          const statusClass = o.status.toLowerCase().replace('_','-');
+          html += `<tr>
+            <td>#${o.id}</td>
+            <td>${o.product}</td>
+            <td>$${o.totalAmount}</td>
+            <td><span class="status-badge ${statusClass}">${o.status}</span></td>
+          </tr>`;
+        });
+        document.getElementById('result').innerHTML = html || '<tr><td colspan="4" style="text-align:center;">No orders found</td></tr>';
+      } catch (err) {
+        alert('Demo data: show dummy orders');
+        document.getElementById('result').innerHTML = `<tr><td>#101</td><td>Fiber Internet</td><td>$129.99</td><td><span class="status-badge pending">PENDING</span></td></tr>`;
+      }
+    }
+    trackOrder(); // initial
+  </script>
 </body>
-
 </html>

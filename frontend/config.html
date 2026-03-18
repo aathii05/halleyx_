@@ -1,330 +1,628 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Halleyx · Dashboard Builder</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
+      display: flex;
+      transition: background 0.2s, color 0.2s;
+      height: 100vh;
+      overflow: hidden;
+    }
+    body.dark { background: #0f172a; color: #e2e8f0; }
+    body.dark .sidebar { background: #111827; border-color: #1e293b; }
+    body.dark .widget, body.dark .config-panel { background: #1e293b; border-color: #334155; }
 
-<title>Admin Dashboard</title>
+    /* SIDEBAR (left) */
+    .sidebar {
+      width: 280px;
+      background: white;
+      border-right: 1px solid #e9eef2;
+      height: 100vh;
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .sidebar h2 { font-weight: 600; font-size: 1.8rem; background: linear-gradient(135deg,#2563eb,#1e40af); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .palette-section { border-top: 2px dashed #cbd5e1; padding-top: 20px; }
+    .palette-title { font-size: 0.85rem; text-transform: uppercase; color: #64748b; margin-bottom: 16px; letter-spacing: 0.5px; }
+    .palette-btn {
+      width: 100%;
+      background: white;
+      border: 1px solid #dae2ec;
+      border-radius: 40px;
+      padding: 14px 18px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: 0.15s;
+      margin-bottom: 10px;
+    }
+    .palette-btn:hover { background: #f1f5f9; border-color: #2563eb; }
+    body.dark .palette-btn { background: #1e293b; border-color: #3b4a5f; color: white; }
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    /* MAIN BUILDER AREA */
+    .builder-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 32px;
+      overflow: hidden;
+    }
+    .builder-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .builder-header h1 { font-size: 2rem; font-weight: 600; background: linear-gradient(145deg, #1e293b, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .date-filter {
+      background: white;
+      border-radius: 60px;
+      border: 1px solid #e2e8f0;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+    }
+    .date-filter select {
+      border: none;
+      background: transparent;
+      padding: 10px 20px;
+      font-size: 14px;
+      outline: none;
+      font-weight: 500;
+    }
+    body.dark .date-filter { background: #1e293b; border-color:#334155; color:white; }
+    .action-buttons { display: flex; gap: 12px; }
+    .action-buttons button {
+      background: white;
+      border: 1px solid #dae2ec;
+      border-radius: 40px;
+      padding: 12px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .action-buttons button.primary {
+      background: #2563eb;
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px #2563eb70;
+    }
 
-<style>
+    /* CANVAS GRID (12 columns) */
+    .canvas-grid {
+      background: #f1f5f9;
+      border-radius: 40px;
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .widget-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+      min-height: 400px;
+    }
+    .widget {
+      background: white;
+      border-radius: 24px;
+      padding: 18px 20px;
+      box-shadow: 0 8px 20px -6px rgba(0,34,64,0.1);
+      border: 1px solid #ffffff30;
+      cursor: move;
+      transition: box-shadow 0.1s;
+      position: relative;
+      grid-column: span 4; /* default, overridden */
+    }
+    .widget:hover { box-shadow: 0 16px 30px -8px #2563eb30; }
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      font-weight: 600;
+    }
+    .widget-actions {
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+      transition: 0.1s;
+    }
+    .widget:hover .widget-actions { opacity: 1; }
+    .widget-actions button {
+      background: none;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      color: #64748b;
+      padding: 6px;
+      border-radius: 30px;
+    }
+    .widget-actions button:hover { background: #eef2ff; color: #2563eb; }
 
-body{
-margin:0;
-font-family:Arial;
-background:#f1f5f9;
-display:flex;
-}
+    /* CONFIGURATION SIDE PANEL */
+    .config-panel {
+      width: 380px;
+      background: white;
+      border-left: 1px solid #e2e8f0;
+      padding: 28px 24px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      transition: 0.2s;
+    }
+    .config-panel h3 { margin-bottom: 24px; font-size: 1.5rem; }
+    .config-field {
+      margin-bottom: 20px;
+    }
+    .config-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .config-field input, .config-field select, .config-field textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #d1d9e6;
+      border-radius: 20px;
+      font-size: 14px;
+      outline: none;
+    }
+    .config-field input:focus { border-color: #2563eb; }
+    .config-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 32px;
+    }
+    .config-actions button {
+      flex: 1;
+      padding: 14px;
+      border-radius: 40px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+    .save-config { background: #2563eb; color: white; }
+    .delete-config { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 
-/* SIDEBAR */
+    /* responsive */
+    @media (max-width: 1024px) { .widget-grid { grid-template-columns: repeat(8,1fr); } }
+    @media (max-width: 640px) { .widget-grid { grid-template-columns: repeat(4,1fr); } }
 
-.sidebar{
-width:240px;
-background:#1e293b;
-color:white;
-height:100vh;
-padding:20px;
-}
-
-.sidebar h2{
-text-align:center;
-margin-bottom:40px;
-}
-
-.sidebar a{
-display:block;
-padding:12px;
-color:white;
-text-decoration:none;
-margin-bottom:10px;
-border-radius:6px;
-}
-
-.sidebar a:hover{
-background:#334155;
-}
-
-/* MAIN */
-
-.main{
-flex:1;
-padding:30px;
-}
-
-/* HEADER */
-
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:20px;
-}
-
-/* KPI GRID */
-
-.kpi-grid{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:20px;
-margin-bottom:30px;
-}
-
-.card{
-background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 2px 8px rgba(0,0,0,0.1);
-}
-
-.card h3{
-margin:0;
-color:#64748b;
-}
-
-.card h1{
-margin-top:10px;
-}
-
-/* CHART GRID */
-
-.chart-grid{
-display:grid;
-grid-template-columns:2fr 1fr;
-gap:20px;
-margin-bottom:30px;
-}
-
-.chart-card{
-background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 2px 8px rgba(0,0,0,0.1);
-height:350px;
-}
-
-.chart-card canvas{
-width:100% !important;
-height:100% !important;
-}
-
-/* TABLE */
-
-.table-card{
-background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 2px 8px rgba(0,0,0,0.1);
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-}
-
-th,td{
-padding:12px;
-border-bottom:1px solid #eee;
-text-align:left;
-}
-
-button{
-padding:6px 10px;
-background:red;
-color:white;
-border:none;
-cursor:pointer;
-}
-
-</style>
-
+    .hidden { display: none; }
+    .kpi-value { font-size: 2.4rem; font-weight: 700; }
+  </style>
 </head>
-
 <body>
+  <!-- LEFT SIDEBAR (palette) -->
+  <div class="sidebar">
+    <h2>Halleyx·build</h2>
+    <div class="palette-section">
+      <div class="palette-title">Charts</div>
+      <button class="palette-btn" data-type="bar"><i class="fas fa-chart-bar"></i> Bar Chart</button>
+      <button class="palette-btn" data-type="line"><i class="fas fa-chart-line"></i> Line Chart</button>
+      <button class="palette-btn" data-type="pie"><i class="fas fa-chart-pie"></i> Pie Chart</button>
+      <button class="palette-btn" data-type="area"><i class="fas fa-chart-area"></i> Area Chart</button>
+    </div>
+    <div class="palette-section">
+      <div class="palette-title">Tables</div>
+      <button class="palette-btn" data-type="table"><i class="fas fa-table"></i> Table</button>
+    </div>
+    <div class="palette-section">
+      <div class="palette-title">KPIs</div>
+      <button class="palette-btn" data-type="kpi"><i class="fas fa-chart-simple"></i> KPI Value</button>
+    </div>
+    <div style="margin-top: auto;">
+      <button class="palette-btn" id="saveLayoutBtn"><i class="fas fa-save"></i> Save layout</button>
+      <button class="palette-btn" id="clearLayoutBtn"><i class="fas fa-trash-alt"></i> Clear widgets</button>
+    </div>
+  </div>
 
-<!-- SIDEBAR -->
+  <!-- MAIN BUILDER AREA -->
+  <div class="builder-main">
+    <div class="builder-header">
+      <h1>Dashboard Builder</h1>
+      <div style="display:flex; gap:16px;">
+        <div class="date-filter">
+          <select id="dateRange">
+            <option value="all">All time</option><option value="today">Today</option>
+            <option value="7">Last 7 days</option><option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
+        <div class="action-buttons">
+          <button id="previewBtn"><i class="fas fa-eye"></i> Preview</button>
+          <button class="primary" id="saveConfigBtn"><i class="fas fa-check"></i> Save Configuration</button>
+        </div>
+      </div>
+    </div>
+    <div class="canvas-grid">
+      <div id="widgetGrid" class="widget-grid"></div>
+    </div>
+  </div>
 
-<div class="sidebar">
+  <!-- CONFIGURATION SIDE PANEL (hidden by default) -->
+  <div id="configPanel" class="config-panel hidden">
+    <h3 id="configTitle">Configure widget</h3>
+    <div id="configFields"></div>
+    <div class="config-actions">
+      <button class="save-config" id="applyConfig">Apply</button>
+      <button class="delete-config" id="deleteWidget">Delete</button>
+    </div>
+  </div>
 
-<h2>Admin</h2>
+  <script>
+    (function() {
+      // ---------- STATE ----------
+      let widgets = [];                       // array of widget objects
+      let currentEditingId = null;             // widget id being configured
+      let orders = [];                         // orders data
+      const API = 'http://localhost:8080/orders';
+      const STORAGE_KEY = 'halleyx_layout';
+      
+      // DOM elements
+      const gridEl = document.getElementById('widgetGrid');
+      const configPanel = document.getElementById('configPanel');
+      const configFields = document.getElementById('configFields');
+      const configTitle = document.getElementById('configTitle');
+      const applyBtn = document.getElementById('applyConfig');
+      const deleteBtn = document.getElementById('deleteWidget');
+      const saveLayoutBtn = document.getElementById('saveLayoutBtn');
+      const clearLayoutBtn = document.getElementById('clearLayoutBtn');
+      const previewBtn = document.getElementById('previewBtn');
+      const saveConfigBtn = document.getElementById('saveConfigBtn');
+      const dateRange = document.getElementById('dateRange');
 
-<a href="#">Dashboard</a>
-<a href="config.html">Dashboard Builder</a>
-<a href="order.html">Create Order</a>
-<a href="track.html">Track Order</a>
+      // ---------- LOAD ORDERS ----------
+      async function loadOrders() {
+        try {
+          const res = await fetch(API);
+          orders = await res.json();
+        } catch {
+          orders = [
+            { id:1, firstName:'John', lastName:'Doe', product:'Laptop', totalAmount:1200, status:'DELIVERED', orderDate:'2025-03-01' },
+            { id:2, firstName:'Anna', lastName:'Bell', product:'Phone', totalAmount:800, status:'PENDING', orderDate:'2025-03-10' },
+            { id:3, firstName:'Mike', lastName:'Ross', product:'Headphones', totalAmount:150, status:'DELIVERED', orderDate:'2025-03-15' },
+            { id:4, firstName:'Sara', lastName:'King', product:'Keyboard', totalAmount:220, status:'IN_PROGRESS', orderDate:'2025-03-20' }
+          ];
+        }
+      }
 
-</div>
+      // ---------- FILTER ORDERS BY DATE (simulated) ----------
+      function getFilteredOrders() {
+        const range = dateRange.value;
+        if (range === 'all') return orders;
+        const days = parseInt(range);
+        if (isNaN(days)) return orders;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        return orders.filter(o => new Date(o.orderDate || Date.now()) >= cutoff);
+      }
 
-<!-- MAIN -->
+      // ---------- RENDER ALL WIDGETS (preview inside builder) ----------
+      function renderWidgets() {
+        gridEl.innerHTML = '';
+        if (widgets.length === 0) {
+          gridEl.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:60px; color:#64748b;">Drag widgets from left panel or click palette buttons to start building.</div>';
+          return;
+        }
 
-<div class="main">
+        const filtered = getFilteredOrders();
 
-<div class="header">
-<h1>Dashboard</h1>
-</div>
+        widgets.forEach(w => {
+          const el = document.createElement('div');
+          el.className = 'widget';
+          el.dataset.id = w.id;
+          // set column span (default 4)
+          const colSpan = w.width || 4;
+          el.style.gridColumn = `span ${colSpan}`;
 
-<!-- KPI CARDS -->
+          // header
+          const header = document.createElement('div');
+          header.className = 'widget-header';
+          header.innerHTML = `
+            <span>${w.title || 'Widget'}</span>
+            <div class="widget-actions">
+              <button class="edit-widget" title="Settings"><i class="fas fa-cog"></i></button>
+              <button class="remove-widget" title="Remove"><i class="fas fa-times"></i></button>
+            </div>
+          `;
+          el.appendChild(header);
 
-<div class="kpi-grid">
+          // content placeholder (preview)
+          const content = document.createElement('div');
+          content.className = 'widget-content';
+          // simple preview based on type
+          if (w.type === 'kpi') {
+            const metric = w.config?.metric || 'orders';
+            let val = filtered.length;
+            if (metric === 'revenue') val = filtered.reduce((a,b)=>a+(b.totalAmount||0),0);
+            content.innerHTML = `<div class="kpi-value">${val}</div><div>${w.title || 'KPI'}</div>`;
+          } else if (w.type === 'bar' || w.type === 'line' || w.type === 'pie' || w.type === 'area') {
+            content.innerHTML = `<canvas id="chart-${w.id}" style="max-height:150px;"></canvas>`;
+            // chart will be initialized after render
+          } else if (w.type === 'table') {
+            const table = document.createElement('table');
+            table.style.fontSize = '12px';
+            table.innerHTML = '<thead><tr><th>ID</th><th>Product</th><th>Total</th></tr></thead><tbody>' +
+              filtered.slice(0,3).map(o => `<tr><td>${o.id}</td><td>${o.product}</td><td>$${o.totalAmount}</td></tr>`).join('') +
+              '</tbody>';
+            content.appendChild(table);
+          }
+          el.appendChild(content);
+          gridEl.appendChild(el);
 
-<div class="card">
-<h3>Total Orders</h3>
-<h1 id="orders">0</h1>
-</div>
+          // attach event listeners
+          const editBtn = el.querySelector('.edit-widget');
+          editBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openConfigPanel(w.id);
+          });
+          const removeBtn = el.querySelector('.remove-widget');
+          removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Remove this widget?')) {
+              widgets = widgets.filter(wi => wi.id !== w.id);
+              renderWidgets();
+            }
+          });
 
-<div class="card">
-<h3>Total Revenue</h3>
-<h1 id="revenue">0</h1>
-</div>
+          // if chart, initialize Chart.js (simplified)
+          if (w.type === 'bar' || w.type === 'line' || w.type === 'pie' || w.type === 'area') {
+            const canvas = document.getElementById(`chart-${w.id}`);
+            if (canvas) {
+              const ctx = canvas.getContext('2d');
+              const labels = filtered.map(o => o.product).slice(0,5);
+              const data = filtered.map(o => o.totalAmount).slice(0,5);
+              new Chart(ctx, {
+                type: w.type === 'area' ? 'line' : w.type,
+                data: { labels, datasets: [{ data, backgroundColor: '#2563eb' }] }
+              });
+            }
+          }
+        });
 
-<div class="card">
-<h3>Pending Orders</h3>
-<h1 id="pending">0</h1>
-</div>
+        // enable drag & drop
+        Sortable.create(gridEl, {
+          animation: 200,
+          handle: '.widget-header', // drag by header
+          onEnd: (evt) => {
+            const newOrder = [];
+            const children = gridEl.children;
+            for (let i = 0; i < children.length; i++) {
+              const id = children[i].dataset.id;
+              const found = widgets.find(w => w.id === id);
+              if (found) newOrder.push(found);
+            }
+            widgets = newOrder;
+          }
+        });
+      }
 
-<div class="card">
-<h3>Delivered</h3>
-<h1 id="delivered">0</h1>
-</div>
+      // ---------- OPEN CONFIGURATION PANEL ----------
+      function openConfigPanel(widgetId) {
+        const widget = widgets.find(w => w.id === widgetId);
+        if (!widget) return;
+        currentEditingId = widgetId;
+        configPanel.classList.remove('hidden');
+        configTitle.innerText = `Configure ${widget.type} widget`;
+        
+        // build form fields based on widget type and spec
+        let html = '';
+        
+        // common fields: title, description, width, height
+        html += `
+          <div class="config-field"><label>Widget title</label><input id="cfg_title" value="${widget.title || ''}" placeholder="Untitled"></div>
+          <div class="config-field"><label>Description</label><textarea id="cfg_desc" rows="2">${widget.desc || ''}</textarea></div>
+          <div class="config-field"><label>Width (columns) 1-12</label><input id="cfg_width" type="number" min="1" max="12" value="${widget.width || 4}"></div>
+          <div class="config-field"><label>Height (rows) 1-12</label><input id="cfg_height" type="number" min="1" max="12" value="${widget.height || 4}"></div>
+        `;
 
-</div>
+        // type-specific fields
+        if (widget.type === 'kpi') {
+          html += `
+            <div class="config-field"><label>Select metric</label>
+              <select id="cfg_metric">
+                <option value="orders" ${widget.config?.metric==='orders'?'selected':''}>Total orders</option>
+                <option value="revenue" ${widget.config?.metric==='revenue'?'selected':''}>Revenue</option>
+                <option value="pending" ${widget.config?.metric==='pending'?'selected':''}>Pending orders</option>
+                <option value="delivered" ${widget.config?.metric==='delivered'?'selected':''}>Delivered</option>
+              </select>
+            </div>
+            <div class="config-field"><label>Aggregation</label>
+              <select id="cfg_agg">
+                <option value="sum" ${widget.config?.agg==='sum'?'selected':''}>Sum</option>
+                <option value="avg" ${widget.config?.agg==='avg'?'selected':''}>Average</option>
+                <option value="count" ${widget.config?.agg==='count'?'selected':''}>Count</option>
+              </select>
+            </div>
+            <div class="config-field"><label>Data format</label>
+              <select id="cfg_format">
+                <option value="number" ${widget.config?.format==='number'?'selected':''}>Number</option>
+                <option value="currency" ${widget.config?.format==='currency'?'selected':''}>Currency</option>
+              </select>
+            </div>
+            <div class="config-field"><label>Decimal precision</label><input id="cfg_precision" type="number" min="0" value="${widget.config?.precision || 0}"></div>
+          `;
+        } else if (widget.type === 'bar' || widget.type === 'line' || widget.type === 'area') {
+          html += `
+            <div class="config-field"><label>X-Axis data</label>
+              <select id="cfg_xaxis">
+                <option value="product" ${widget.config?.xaxis==='product'?'selected':''}>Product</option>
+                <option value="status" ${widget.config?.xaxis==='status'?'selected':''}>Status</option>
+                <option value="createdBy" ${widget.config?.xaxis==='createdBy'?'selected':''}>Created by</option>
+              </select>
+            </div>
+            <div class="config-field"><label>Y-Axis data</label>
+              <select id="cfg_yaxis">
+                <option value="totalAmount" ${widget.config?.yaxis==='totalAmount'?'selected':''}>Total amount</option>
+                <option value="quantity" ${widget.config?.yaxis==='quantity'?'selected':''}>Quantity</option>
+              </select>
+            </div>
+            <div class="config-field"><label>Chart color</label><input id="cfg_color" type="color" value="${widget.config?.color || '#2563eb'}"></div>
+            <div class="config-field"><label><input type="checkbox" id="cfg_datalabel" ${widget.config?.showLabels?'checked':''}> Show data labels</label></div>
+          `;
+        } else if (widget.type === 'pie') {
+          html += `
+            <div class="config-field"><label>Choose chart data</label>
+              <select id="cfg_piedata">
+                <option value="product" ${widget.config?.field==='product'?'selected':''}>Product</option>
+                <option value="status" ${widget.config?.field==='status'?'selected':''}>Status</option>
+              </select>
+            </div>
+            <div class="config-field"><label><input type="checkbox" id="cfg_legend" ${widget.config?.showLegend?'checked':''}> Show legend</label></div>
+          `;
+        } else if (widget.type === 'table') {
+          html += `
+            <div class="config-field"><label>Choose columns (comma-separated)</label>
+              <input id="cfg_columns" value="${widget.config?.columns?.join(',') || 'id,product,totalAmount,status'}">
+            </div>
+            <div class="config-field"><label>Sort by</label>
+              <select id="cfg_sort">
+                <option value="">None</option>
+                <option value="asc" ${widget.config?.sort==='asc'?'selected':''}>Ascending</option>
+                <option value="desc" ${widget.config?.sort==='desc'?'selected':''}>Descending</option>
+              </select>
+            </div>
+            <div class="config-field"><label>Pagination (rows)</label>
+              <select id="cfg_pagesize">
+                <option value="5" ${widget.config?.pageSize==5?'selected':''}>5</option>
+                <option value="10" ${widget.config?.pageSize==10?'selected':''}>10</option>
+                <option value="15" ${widget.config?.pageSize==15?'selected':''}>15</option>
+              </select>
+            </div>
+            <div class="config-field"><label>Font size</label><input id="cfg_fontsize" type="number" min="12" max="18" value="${widget.config?.fontSize || 14}"></div>
+            <div class="config-field"><label>Header background</label><input id="cfg_headerbg" type="color" value="${widget.config?.headerBg || '#54bd95'}"></div>
+          `;
+        }
 
-<!-- CHARTS -->
+        configFields.innerHTML = html;
+      }
 
-<div class="chart-grid">
+      // ---------- APPLY CONFIGURATION ----------
+      applyBtn.addEventListener('click', () => {
+        if (!currentEditingId) return;
+        const widget = widgets.find(w => w.id === currentEditingId);
+        if (!widget) return;
 
-<div class="chart-card">
-<canvas id="salesChart"></canvas>
-</div>
+        // update common fields
+        widget.title = document.getElementById('cfg_title')?.value || 'Untitled';
+        widget.desc = document.getElementById('cfg_desc')?.value || '';
+        widget.width = parseInt(document.getElementById('cfg_width')?.value) || 4;
+        widget.height = parseInt(document.getElementById('cfg_height')?.value) || 4;
 
-<div class="chart-card">
-<canvas id="productChart"></canvas>
-</div>
+        // type-specific config
+        widget.config = widget.config || {};
+        if (widget.type === 'kpi') {
+          widget.config.metric = document.getElementById('cfg_metric')?.value;
+          widget.config.agg = document.getElementById('cfg_agg')?.value;
+          widget.config.format = document.getElementById('cfg_format')?.value;
+          widget.config.precision = parseInt(document.getElementById('cfg_precision')?.value) || 0;
+        } else if (widget.type === 'bar' || widget.type === 'line' || widget.type === 'area') {
+          widget.config.xaxis = document.getElementById('cfg_xaxis')?.value;
+          widget.config.yaxis = document.getElementById('cfg_yaxis')?.value;
+          widget.config.color = document.getElementById('cfg_color')?.value;
+          widget.config.showLabels = document.getElementById('cfg_datalabel')?.checked;
+        } else if (widget.type === 'pie') {
+          widget.config.field = document.getElementById('cfg_piedata')?.value;
+          widget.config.showLegend = document.getElementById('cfg_legend')?.checked;
+        } else if (widget.type === 'table') {
+          const cols = document.getElementById('cfg_columns')?.value.split(',').map(s=>s.trim()) || [];
+          widget.config.columns = cols;
+          widget.config.sort = document.getElementById('cfg_sort')?.value;
+          widget.config.pageSize = parseInt(document.getElementById('cfg_pagesize')?.value) || 5;
+          widget.config.fontSize = parseInt(document.getElementById('cfg_fontsize')?.value) || 14;
+          widget.config.headerBg = document.getElementById('cfg_headerbg')?.value;
+        }
 
-</div>
+        renderWidgets();
+        configPanel.classList.add('hidden');
+        currentEditingId = null;
+      });
 
-<!-- ORDERS TABLE -->
+      // ---------- DELETE WIDGET FROM CONFIG PANEL ----------
+      deleteBtn.addEventListener('click', () => {
+        if (currentEditingId && confirm('Delete this widget?')) {
+          widgets = widgets.filter(w => w.id !== currentEditingId);
+          renderWidgets();
+          configPanel.classList.add('hidden');
+          currentEditingId = null;
+        }
+      });
 
-<div class="table-card">
+      // ---------- ADD NEW WIDGET FROM PALETTE ----------
+      document.querySelectorAll('.palette-btn[data-type]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const type = e.currentTarget.dataset.type;
+          const newId = 'w_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+          const newWidget = {
+            id: newId,
+            type: type,
+            title: type.charAt(0).toUpperCase() + type.slice(1),
+            width: 4,
+            height: 4,
+            config: {}
+          };
+          widgets.push(newWidget);
+          renderWidgets();
+        });
+      });
 
-<h3>Recent Orders</h3>
+      // ---------- SAVE LAYOUT ----------
+      function saveLayout() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(widgets));
+        alert('Layout saved to browser');
+      }
+      saveLayoutBtn.addEventListener('click', saveLayout);
+      saveConfigBtn.addEventListener('click', saveLayout);
 
-<table>
+      // ---------- CLEAR ALL ----------
+      clearLayoutBtn.addEventListener('click', () => {
+        if (confirm('Remove all widgets?')) {
+          widgets = [];
+          renderWidgets();
+        }
+      });
 
-<thead>
-<tr>
-<th>ID</th>
-<th>Customer</th>
-<th>Product</th>
-<th>Status</th>
-<th>Delete</th>
-</tr>
-</thead>
+      // ---------- PREVIEW (just render again) ----------
+      previewBtn.addEventListener('click', renderWidgets);
 
-<tbody id="ordersTable"></tbody>
+      // ---------- DATE FILTER CHANGE ----------
+      dateRange.addEventListener('change', renderWidgets);
 
-</table>
-
-</div>
-
-</div>
-
-<script>
-
-const API="http://localhost:8080/orders";
-
-async function loadData(){
-
-let res=await fetch(API);
-let orders=await res.json();
-
-document.getElementById("orders").innerText=orders.length;
-
-let revenue=0;
-let pending=0;
-let delivered=0;
-
-orders.forEach(o=>{
-
-revenue+=o.totalAmount;
-
-if(o.status==="PENDING") pending++;
-if(o.status==="DELIVERED") delivered++;
-
-});
-
-document.getElementById("revenue").innerText=revenue;
-document.getElementById("pending").innerText=pending;
-document.getElementById("delivered").innerText=delivered;
-
-/* TABLE */
-
-let table="";
-
-orders.forEach(o=>{
-
-table+=`
-<tr>
-<td>${o.id}</td>
-<td>${o.firstName}</td>
-<td>${o.product}</td>
-<td>${o.status}</td>
-<td>
-<button onclick="deleteOrder(${o.id})">Delete</button>
-</td>
-</tr>
-`;
-
-});
-
-document.getElementById("ordersTable").innerHTML=table;
-
-/* CHARTS */
-
-let productCount={};
-
-orders.forEach(o=>{
-
-productCount[o.product]=(productCount[o.product]||0)+1;
-
-});
-
-new Chart(document.getElementById("salesChart"),{
-type:"bar",
-data:{
-labels:Object.keys(productCount),
-datasets:[{
-label:"Product Sales",
-data:Object.values(productCount)
-}]
-}
-});
-
-new Chart(document.getElementById("productChart"),{
-type:"pie",
-data:{
-labels:Object.keys(productCount),
-datasets:[{
-data:Object.values(productCount)
-}]
-}
-});
-
-}
-
-async function deleteOrder(id){
-
-await fetch(API+"/"+id,{
-method:"DELETE"
-});
-
-loadData();
-
-}
-
-loadData();
-
-</script>
-
+      // ---------- INIT ----------
+      async function init() {
+        await loadOrders();
+        // load from localStorage if exists
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          try { widgets = JSON.parse(saved); } catch (e) {}
+        }
+        renderWidgets();
+      }
+      init();
+    })();
+  </script>
 </body>
-
 </html>
